@@ -1,0 +1,324 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define TRUE 1
+#define FALSE 0
+#define OK 1
+#define ERROR 0
+#define INIT_SIZE 10		//初始化表长
+#define INCREMENT_SIZE 5	//分配增量
+
+typedef int Status;
+typedef int Elemtype;
+
+/*
+ * 存储结构
+ */
+typedef struct
+{
+    Elemtype *elem;	//存储空间基址
+    int length;		//当前长度
+    int size;		//当前分配的表长大小
+}SqList;
+
+/*
+* 如果函数会改变线性表L的值（初始化、销毁、清空、增加/删除元素）,则用 SqList *L，其余用 SqList L
+*/
+
+/*
+ * 初始化一个空的线性表
+ */
+Status InitList(SqList *L)
+{
+	L->elem = (Elemtype *) malloc(INIT_SIZE * sizeof(Elemtype));
+	if (!L->elem)
+	{
+		return ERROR;//初始失败
+	}
+	L->length = 0;
+	L->size = INIT_SIZE;//初始化表长
+	return OK;
+}
+/*
+用malloc分配一段这么LIST_INIT_SIZE*sizeof(ElemType)多个字节的内存段，它返回一个指向该内存段首字节的指针变量，然后把这个指针变量强制转换为ElemType*类型，
+再把这个经转换的指针变量赋给L的elem成员；
+malloc的语法是：指针名=（数据类型*）malloc（长度）；
+*/
+
+
+
+/*
+ * 销毁线性表
+ */
+Status DestroyList(SqList *L)
+{
+	free(L->elem);//free是用来释放指针所指向的由malloc开辟的内存的
+	L->length = 0;
+	L->size = 0;
+	return OK;
+}
+
+/*
+ * 清空线性表
+ */
+Status ClearList(SqList *L)
+{
+	L->length = 0;
+	return OK;
+}
+
+/*
+ * “ -> ” 是指针操作符，“ . ”是结构操作符。
+ * 如果L是指向结构体的指针，则引用成员变量：L->length或(*L).length
+ * 如果L是结构体，则引用成员变量：L.length
+ */
+
+/*
+ * 判断线性表是否为空
+ */
+Status isEmpty(const SqList L)
+{
+	if (0 == L.length)
+	{
+		return TRUE;
+	}
+	else
+	{
+		return FALSE;
+	}
+}
+
+/*
+ * 获取长度
+ */
+Status getLength(const SqList L)
+{
+	return L.length;
+}
+
+/*
+ * 根据位置获取元素
+ */
+Status GetElem(const SqList L, int i, Elemtype *e)
+{
+	if (i < 1 || i > L.length)
+	{
+		return ERROR;
+	}
+	*e = L.elem[i-1];
+	return OK;
+}
+
+/*
+ * 比较两个元素是否相等
+ */
+Status compare(Elemtype e1, Elemtype e2)
+{
+	if (e1 == e2)
+	{
+		return 0;
+	}
+	else if (e1 < e2)
+	{
+		return -1;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+/*
+ * 查找元素
+ */
+Status FindElem(const SqList L, Elemtype e, Status (*compare)(Elemtype, Elemtype)) //使用函数名字调用函数，函数名字首先被转换为一个函数的指针
+{
+	int i;
+	for (i = 0; i < L.length; i++)
+	{
+		if (!(*compare)(L.elem[i], e))
+		{
+			return i + 1;
+		}
+	}
+	if (i >= L.length)
+	{
+		return ERROR;
+	}
+}
+
+/*
+ * 查找前驱元素
+ */
+Status PreElem(const SqList L, Elemtype cur_e, Elemtype *pre_e)
+{
+	int i;
+	for (i = 0; i < L.length; i++)
+	{
+		if (cur_e == L.elem[i])
+		{
+			if (i != 0)
+			{
+				*pre_e = L.elem[i - 1];
+			}
+			else
+			{
+				return ERROR;
+			}
+		}
+	}
+	if (i >= L.length)
+	{
+		return ERROR;
+	}
+}
+
+/*
+ * 查找后继元素
+ */
+Status NextElem(const SqList L, Elemtype cur_e, Elemtype *next_e)
+{
+	int i;
+	for (i = 0; i < L.length; i++)
+	{
+		if (cur_e == L.elem[i])
+		{
+			if (i < L.length - 1)
+			{
+				*next_e = L.elem[i + 1];
+				return OK;
+			}
+			else
+			{
+				return ERROR;
+			}
+		}
+	}
+	if (i >= L.length)
+	{
+		return ERROR;
+	}
+}
+
+/*
+ * 插入元素
+ * 步骤：1.位置合法性判断 2.空间判断，若满重新分配 3.从表尾开始元素逐个后移 4.插入，表长+1
+ */
+Status InsertElem(SqList *L, int i, Elemtype e)
+//在线性表L中第i个位置之前插入新的数据元素e，L的长度加1
+{
+	Elemtype *new;//用于重新分配空间
+	if (i < 1 || i > L->length + 1)//位置合法性判断
+	{
+		return ERROR;
+	}
+	if (L->length >= L->size)//空间满，重新分配
+	{
+		new = (Elemtype*) realloc(L->elem, (L->size + INCREMENT_SIZE) * sizeof(Elemtype));
+		//realloc语法：指针名=（数据类型*）realloc（要改变内存大小的指针名，新的大小）
+		if (!new)
+		{
+			return ERROR;//存储分配失败
+		}
+		L->elem = new;//存储空间新基址
+		L->size += INCREMENT_SIZE;//修改存储空间大小
+	}
+	Elemtype *p = &L->elem[i - 1];//p为插入位置
+	Elemtype *q = &L->elem[L->length - 1];
+	for (; q >= p; q--) //只有两个指向同一数组的指针才可以比较,指针比较是地址的比较
+	{
+		*(q + 1) = *q;//插入位置及之后的元素右移
+	}
+	*p = e;
+	++L->length;
+	return OK;
+}
+
+/*
+ * 删除元素并返回其值
+ * 步骤：1.位置合法性判断 2.删除第i个元素 3.从删除位置开始元素逐个左移 4.表长-1
+ */
+Status DeleteElem(SqList *L, int i, Elemtype *e)
+//删除L的第i个数据元素，并用e返回其值，L的长度减1
+{
+	if (i < 1 || i > L->length)
+	{
+		return ERROR;
+	}
+	Elemtype *p = &L->elem[i - 1];
+	*e = *p;//被删除元素的赋值给e
+	for (p = &L->elem[i - 1]; p < &L->elem[L->length]; p++)
+	{
+		*(p) = *(p + 1);
+	}
+	--L->length;
+	return OK;
+}
+
+/*
+ * 访问元素
+ */
+void visit(Elemtype e)
+{
+	printf("%d ", e);
+}
+
+/*
+ * 遍历线性表
+ */
+Status TraverseList(const SqList L, void (*visit)(Elemtype))
+{
+	int i;
+	for(i = 0; i < L.length; i++)
+	{
+		visit(L.elem[i]);
+	}
+	return OK;
+}
+
+/*
+ * 主函数测试
+ */
+int main()
+{
+	SqList L;
+	if (InitList(&L))
+	{
+		Elemtype e;
+		printf("init_success\n");
+		int i;
+		for (i = 0; i < 10; i++)
+		{
+			InsertElem(&L, i + 1, i);
+		}
+		printf("length is %d\n", getLength(L));
+		if (GetElem(L, 1, &e)) {
+			printf("The first element is %d\n", e);
+		}
+		else
+		{
+			printf("element is not exist\n");		
+		}
+		if (isEmpty(L))
+		{
+			printf("list is empty\n");
+		}
+		else
+		{
+			printf("list is not empty\n");
+		}
+		printf("The 5 at %d\n", FindElem(L, 5, *compare));
+		PreElem(L, 6, &e);
+		printf("The 6's previous element is %d\n", e);
+		NextElem(L, 6, &e);
+		printf("The 6's next element is %d\n", e);
+		DeleteElem(&L, 1, &e);
+		printf("delete first element is %d\n", e);
+		printf("list:");
+		TraverseList(L,visit);
+		if (DestroyList(&L))
+		{
+			printf("\ndestroy_success\n");
+		}
+	}
+}
